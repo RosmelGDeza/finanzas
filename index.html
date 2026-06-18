@@ -1,0 +1,507 @@
+
+<h2 class="sr-only">Sistema de finanzas personales con ingresos, egresos, transferencias entre cuentas, dashboard mensual y anual</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.app{font-family:var(--font-sans);padding:1rem 0}
+.nav{display:flex;gap:2px;margin-bottom:1.5rem;border-bottom:0.5px solid var(--color-border-tertiary);padding-bottom:0;flex-wrap:wrap}
+.nav-btn{padding:8px 14px;font-size:12px;border:none;background:none;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;display:flex;align-items:center;gap:5px}
+.nav-btn.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+.page{display:none}.page.active{display:block}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.2rem}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:14px}
+.metric-lbl{font-size:11px;color:var(--color-text-secondary);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.metric-val{font-size:19px;font-weight:500}
+.c-green{color:#1D9E75}.c-red{color:#D85A30}.c-blue{color:#378ADD}.c-purple{color:#7F77DD}.c-amber{color:#BA7517}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.1rem;margin-bottom:1rem}
+.card-title{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem}
+.type-tabs{display:flex;gap:6px;margin-bottom:1rem}
+.type-tab{flex:1;padding:8px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.type-tab.active-in{background:#E1F5EE;color:#085041;border-color:#9FE1CB}
+.type-tab.active-out{background:#FAECE7;color:#712B13;border-color:#F5C4B3}
+.type-tab.active-mov{background:#E6F1FB;color:#0C447C;border-color:#B5D4F4}
+.frow{display:grid;gap:8px;align-items:end;margin-bottom:8px}
+.fg-2{grid-template-columns:1fr 1fr}
+.fg-3{grid-template-columns:1fr 1fr 1fr}
+.fg-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.fg-btn{grid-template-columns:1fr auto}
+.flabel{font-size:11px;color:var(--color-text-secondary);margin-bottom:4px}
+select,input[type=text],input[type=number],input[type=date],input[type=month]{height:34px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:0 10px;font-size:12px;background:var(--color-background-primary);color:var(--color-text-primary);width:100%}
+.btn{height:34px;padding:0 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:hover{background:var(--color-background-secondary)}
+.btn-in{background:#1D9E75;color:#fff;border-color:#1D9E75}.btn-in:hover{background:#0F6E56}
+.btn-out{background:#D85A30;color:#fff;border-color:#D85A30}.btn-out:hover{background:#993C1D}
+.btn-mov{background:#378ADD;color:#fff;border-color:#378ADD}.btn-mov:hover{background:#185FA5}
+.tx-list{display:flex;flex-direction:column;gap:5px;max-height:340px;overflow-y:auto}
+.tx-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+.tx-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ico-in{background:#E1F5EE;color:#0F6E56}
+.ico-out{background:#FAECE7;color:#993C1D}
+.ico-mov{background:#E6F1FB;color:#185FA5}
+.tx-info{flex:1;min-width:0}
+.tx-name{font-size:12px;font-weight:500;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-sub{font-size:11px;color:var(--color-text-secondary);margin-top:1px}
+.tx-amt{font-size:13px;font-weight:500;flex-shrink:0}
+.tx-del{background:none;border:none;color:var(--color-text-tertiary);cursor:pointer;padding:3px;border-radius:4px;font-size:13px}
+.tx-del:hover{color:#D85A30}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:10px;flex-shrink:0}
+.badge-in{background:#E1F5EE;color:#085041}
+.badge-out{background:#FAECE7;color:#712B13}
+.badge-mov{background:#E6F1FB;color:#0C447C}
+.filters{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.fbtn{height:28px;padding:0 12px;border-radius:99px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);font-size:11px;cursor:pointer}
+.fbtn.active{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+.chart2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.accts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}
+.acct-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem;position:relative}
+.acct-del{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--color-text-tertiary);cursor:pointer;font-size:12px;padding:2px}
+.acct-del:hover{color:#D85A30}
+.acct-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:8px}
+.acct-name{font-size:12px;color:var(--color-text-secondary);margin-bottom:2px}
+.acct-bal{font-size:17px;font-weight:500}
+.acct-sub{font-size:10px;color:var(--color-text-tertiary);margin-top:2px}
+.sum-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem}
+.sum-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px}
+.sum-lbl{font-size:11px;color:var(--color-text-secondary);margin-bottom:4px}
+.sum-val{font-size:16px;font-weight:500}
+.month-table{width:100%;border-collapse:collapse;font-size:12px}
+.month-table th{text-align:left;padding:7px 8px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);font-weight:500}
+.month-table td{padding:7px 8px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+.month-table tr:last-child td{border-bottom:none}
+.empty{text-align:center;padding:2rem;color:var(--color-text-secondary);font-size:12px}
+.divider{height:0.5px;background:var(--color-border-tertiary);margin:1rem 0}
+.arrow-icon{font-size:16px;color:var(--color-text-tertiary);text-align:center}
+</style>
+
+<div class="app">
+<div class="nav">
+  <button class="nav-btn active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard" aria-hidden="true"></i> Dashboard</button>
+  <button class="nav-btn" onclick="showPage('movimientos',this)"><i class="ti ti-list" aria-hidden="true"></i> Movimientos</button>
+  <button class="nav-btn" onclick="showPage('cuentas',this)"><i class="ti ti-building-bank" aria-hidden="true"></i> Cuentas</button>
+  <button class="nav-btn" onclick="showPage('mensual',this)"><i class="ti ti-calendar-month" aria-hidden="true"></i> Resumen mensual</button>
+  <button class="nav-btn" onclick="showPage('anual',this)"><i class="ti ti-chart-line" aria-hidden="true"></i> Resumen anual</button>
+</div>
+
+<div id="page-dashboard" class="page active">
+  <div class="metrics" id="dash-metrics"></div>
+  <div class="chart2">
+    <div class="card"><div class="card-title">Ingresos vs egresos — últimos 6 meses</div><div style="position:relative;height:200px"><canvas id="barChart" role="img" aria-label="Ingresos vs egresos por mes">Sin datos.</canvas></div></div>
+    <div class="card"><div class="card-title">Distribución de egresos</div><div style="position:relative;height:200px"><canvas id="pieChart" role="img" aria-label="Distribución de egresos">Sin datos.</canvas></div></div>
+  </div>
+  <div class="card"><div class="card-title">Saldo por cuenta</div><div style="position:relative;height:160px"><canvas id="acctChart" role="img" aria-label="Saldo por cuenta">Sin datos.</canvas></div></div>
+  <div class="card"><div class="card-title">Últimos movimientos</div><div class="tx-list" id="dash-recent"></div></div>
+</div>
+
+<div id="page-movimientos" class="page">
+  <div class="card">
+    <div class="card-title">Registrar</div>
+    <div class="type-tabs">
+      <button class="type-tab active-in" id="tab-in" onclick="setTab('income')"><i class="ti ti-arrow-up" aria-hidden="true"></i> Ingreso</button>
+      <button class="type-tab" id="tab-out" onclick="setTab('expense')"><i class="ti ti-arrow-down" aria-hidden="true"></i> Egreso</button>
+      <button class="type-tab" id="tab-mov" onclick="setTab('transfer')"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> Movimiento entre cuentas</button>
+    </div>
+
+    <div id="form-income">
+      <div class="frow fg-3">
+        <div><div class="flabel">Descripción</div><input type="text" id="in-desc" placeholder="Ej: Sueldo enero" /></div>
+        <div><div class="flabel">Categoría</div><select id="in-cat"></select></div>
+        <div><div class="flabel">Cuenta destino</div><select id="in-acct"></select></div>
+      </div>
+      <div class="frow fg-3">
+        <div><div class="flabel">Monto (S/)</div><input type="number" id="in-amount" placeholder="0.00" min="0" step="0.01" /></div>
+        <div><div class="flabel">Fecha</div><input type="date" id="in-date" /></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn btn-in" onclick="addTx('income')" style="width:100%;justify-content:center"><i class="ti ti-plus" aria-hidden="true"></i> Registrar ingreso</button></div>
+      </div>
+    </div>
+
+    <div id="form-expense" style="display:none">
+      <div class="frow fg-3">
+        <div><div class="flabel">Descripción</div><input type="text" id="ex-desc" placeholder="Ej: Mercado semanal" /></div>
+        <div><div class="flabel">Categoría</div><select id="ex-cat"></select></div>
+        <div><div class="flabel">Cuenta origen</div><select id="ex-acct"></select></div>
+      </div>
+      <div class="frow fg-3">
+        <div><div class="flabel">Monto (S/)</div><input type="number" id="ex-amount" placeholder="0.00" min="0" step="0.01" /></div>
+        <div><div class="flabel">Fecha</div><input type="date" id="ex-date" /></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn btn-out" onclick="addTx('expense')" style="width:100%;justify-content:center"><i class="ti ti-plus" aria-hidden="true"></i> Registrar egreso</button></div>
+      </div>
+    </div>
+
+    <div id="form-transfer" style="display:none">
+      <div class="frow fg-3">
+        <div><div class="flabel">Descripción</div><input type="text" id="tr-desc" placeholder="Ej: Depósito a BCP" /></div>
+        <div><div class="flabel">Cuenta origen</div><select id="tr-from"></select></div>
+        <div><div class="flabel">Cuenta destino</div><select id="tr-to"></select></div>
+      </div>
+      <div class="frow fg-3">
+        <div><div class="flabel">Monto (S/)</div><input type="number" id="tr-amount" placeholder="0.00" min="0" step="0.01" /></div>
+        <div><div class="flabel">Fecha</div><input type="date" id="tr-date" /></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn btn-mov" onclick="addTx('transfer')" style="width:100%;justify-content:center"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> Registrar movimiento</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Historial</div>
+    <div class="filters">
+      <button class="fbtn active" onclick="setFilter('all',this)">Todos</button>
+      <button class="fbtn" onclick="setFilter('income',this)">Ingresos</button>
+      <button class="fbtn" onclick="setFilter('expense',this)">Egresos</button>
+      <button class="fbtn" onclick="setFilter('transfer',this)">Movimientos</button>
+      <select id="f-acctF" onchange="renderList()" style="height:28px;font-size:11px;padding:0 8px;border-radius:99px;width:auto">
+        <option value="">Todas las cuentas</option>
+      </select>
+    </div>
+    <div class="tx-list" id="tx-list"></div>
+  </div>
+</div>
+
+<div id="page-cuentas" class="page">
+  <div class="accts-grid" id="accts-grid"></div>
+  <div class="card">
+    <div class="card-title">Agregar nueva cuenta o billetera</div>
+    <div class="frow fg-4">
+      <div><div class="flabel">Nombre</div><input type="text" id="acct-name" placeholder="Ej: Scotiabank" /></div>
+      <div><div class="flabel">Tipo</div>
+        <select id="acct-type">
+          <option value="bank">Banco</option>
+          <option value="cash">Efectivo</option>
+          <option value="loan">Préstamo</option>
+          <option value="invest">Inversión</option>
+          <option value="other">Otro</option>
+        </select>
+      </div>
+      <div><div class="flabel">Saldo inicial (S/)</div><input type="number" id="acct-init" placeholder="0.00" min="0" step="0.01" /></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn btn-in" onclick="addAcct()" style="width:100%;justify-content:center"><i class="ti ti-plus" aria-hidden="true"></i> Agregar cuenta</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="page-mensual" class="page">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+    <div><div class="flabel">Selecciona mes</div><input type="month" id="sel-month" style="width:160px" /></div>
+    <div style="display:flex;align-items:flex-end;height:56px"><button class="btn" onclick="renderMensual()"><i class="ti ti-refresh" aria-hidden="true"></i> Ver</button></div>
+  </div>
+  <div class="sum-row" id="mensual-metrics"></div>
+  <div class="chart2">
+    <div class="card"><div class="card-title">Ingresos por categoría</div><div style="position:relative;height:200px"><canvas id="mIncChart" role="img" aria-label="Ingresos del mes">Sin datos.</canvas></div></div>
+    <div class="card"><div class="card-title">Egresos por categoría</div><div style="position:relative;height:200px"><canvas id="mExpChart" role="img" aria-label="Egresos del mes">Sin datos.</canvas></div></div>
+  </div>
+  <div class="card"><div class="card-title">Detalle del mes</div><div class="tx-list" id="mensual-list"></div></div>
+</div>
+
+<div id="page-anual" class="page">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+    <div><div class="flabel">Año</div><select id="sel-year" style="width:120px"></select></div>
+    <div style="display:flex;align-items:flex-end;height:56px"><button class="btn" onclick="renderAnual()"><i class="ti ti-refresh" aria-hidden="true"></i> Ver</button></div>
+  </div>
+  <div class="sum-row" id="anual-metrics"></div>
+  <div class="card"><div class="card-title">Ingresos y egresos por mes</div><div style="position:relative;height:240px"><canvas id="anualChart" role="img" aria-label="Ingresos y egresos anuales">Sin datos.</canvas></div></div>
+  <div class="card"><div class="card-title">Resumen por mes</div><div style="overflow-x:auto"><table class="month-table" id="anual-table"><thead><tr><th>Mes</th><th>Ingresos</th><th>Egresos</th><th>Movimientos</th><th>Balance</th></tr></thead><tbody></tbody></table></div></div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const MONTHS_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const CATS_IN=['Salario','Ventas','Freelance','Inversión','Alquiler','Otros ingresos'];
+const CATS_EX=['Alimentación','Transporte','Salud','Educación','Entretenimiento','Servicios','Vestimenta','Deudas','Otros gastos'];
+const CAT_COLORS={'Salario':'#1D9E75','Ventas':'#378ADD','Freelance':'#7F77DD','Inversión':'#EF9F27','Alquiler':'#5DCAA5','Otros ingresos':'#639922','Alimentación':'#D85A30','Transporte':'#888780','Salud':'#D4537E','Educación':'#3B6D11','Entretenimiento':'#E24B4A','Servicios':'#BA7517','Vestimenta':'#AFA9EC','Deudas':'#993C1D','Otros gastos':'#5F5E5A'};
+const ACCT_ICONS={bank:'ti-building-bank',cash:'ti-cash',loan:'ti-credit-card',invest:'ti-trending-up',other:'ti-wallet'};
+const ACCT_COLORS={bank:'#E6F1FB',cash:'#E1F5EE',loan:'#FAECE7',invest:'#FAEEDA',other:'#F1EFE8'};
+const ACCT_TC={bank:'#0C447C',cash:'#085041',loan:'#712B13',invest:'#633806',other:'#444441'};
+
+let transactions=[];
+let accounts=[
+  {id:1,name:'BCP',type:'bank',initBal:1500},
+  {id:2,name:'Interbank',type:'bank',initBal:0},
+  {id:3,name:'Efectivo',type:'cash',initBal:500},
+  {id:4,name:'Banco de la Nación',type:'bank',initBal:0},
+  {id:5,name:'Préstamo',type:'loan',initBal:0},
+  {id:6,name:'Inversión',type:'invest',initBal:2000},
+];
+let nextAcctId=7;
+let currentFilter='all';
+let currentTab='income';
+let charts={};
+
+function fmt(n){return 'S/ '+Number(n).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function today(){return new Date().toISOString().split('T')[0]}
+
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='dashboard')renderDashboard();
+  if(id==='mensual')renderMensual();
+  if(id==='anual')renderAnual();
+  if(id==='cuentas')renderAccts();
+  if(id==='movimientos'){updateSelects();renderList()}
+}
+
+function setTab(tab){
+  currentTab=tab;
+  document.getElementById('form-income').style.display=tab==='income'?'block':'none';
+  document.getElementById('form-expense').style.display=tab==='expense'?'block':'none';
+  document.getElementById('form-transfer').style.display=tab==='transfer'?'block':'none';
+  ['in','out','mov'].forEach(t=>document.getElementById('tab-'+t).className='type-tab');
+  const map={income:'in',expense:'out',transfer:'mov'};
+  const cls={income:'active-in',expense:'active-out',transfer:'active-mov'};
+  document.getElementById('tab-'+map[tab]).classList.add(cls[tab]);
+}
+
+function acctBalance(id){
+  const acct=accounts.find(a=>a.id===id);
+  if(!acct)return 0;
+  const txBal=transactions.filter(t=>t.acctId===id||t.toAcctId===id).reduce((s,t)=>{
+    if(t.type==='income'&&t.acctId===id)return s+t.amount;
+    if(t.type==='expense'&&t.acctId===id)return s-t.amount;
+    if(t.type==='transfer'&&t.acctId===id)return s-t.amount;
+    if(t.type==='transfer'&&t.toAcctId===id)return s+t.amount;
+    return s;
+  },0);
+  return acct.initBal+txBal;
+}
+
+function totalBalance(){return accounts.reduce((s,a)=>s+acctBalance(a.id),0)}
+
+function updateSelects(){
+  const acctOpts=accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  ['in-acct','ex-acct','tr-from','tr-to','f-acctF'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const prefix=id==='f-acctF'?'<option value="">Todas las cuentas</option>':'';
+    el.innerHTML=prefix+acctOpts;
+  });
+  document.getElementById('in-cat').innerHTML=CATS_IN.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('ex-cat').innerHTML=CATS_EX.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function addTx(type){
+  let tx={id:Date.now(),type,date:''};
+  if(type==='income'){
+    const desc=document.getElementById('in-desc').value.trim();
+    const amount=parseFloat(document.getElementById('in-amount').value);
+    if(!desc||isNaN(amount)||amount<=0)return;
+    tx={...tx,desc,cat:document.getElementById('in-cat').value,acctId:parseInt(document.getElementById('in-acct').value),amount,date:document.getElementById('in-date').value||today()};
+    document.getElementById('in-desc').value='';document.getElementById('in-amount').value='';
+  } else if(type==='expense'){
+    const desc=document.getElementById('ex-desc').value.trim();
+    const amount=parseFloat(document.getElementById('ex-amount').value);
+    if(!desc||isNaN(amount)||amount<=0)return;
+    tx={...tx,desc,cat:document.getElementById('ex-cat').value,acctId:parseInt(document.getElementById('ex-acct').value),amount,date:document.getElementById('ex-date').value||today()};
+    document.getElementById('ex-desc').value='';document.getElementById('ex-amount').value='';
+  } else if(type==='transfer'){
+    const desc=document.getElementById('tr-desc').value.trim()||'Transferencia';
+    const amount=parseFloat(document.getElementById('tr-amount').value);
+    const from=parseInt(document.getElementById('tr-from').value);
+    const to=parseInt(document.getElementById('tr-to').value);
+    if(isNaN(amount)||amount<=0||from===to)return;
+    tx={...tx,desc,acctId:from,toAcctId:to,amount,date:document.getElementById('tr-date').value||today()};
+    document.getElementById('tr-desc').value='';document.getElementById('tr-amount').value='';
+  }
+  transactions.unshift(tx);
+  renderList();
+}
+
+function deleteTx(id){transactions=transactions.filter(t=>t.id!==id);renderList()}
+
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+function txLabel(t){
+  const acctMap=Object.fromEntries(accounts.map(a=>[a.id,a.name]));
+  if(t.type==='income')return`${t.cat} → ${acctMap[t.acctId]||'?'}`;
+  if(t.type==='expense')return`${t.cat} · desde ${acctMap[t.acctId]||'?'}`;
+  if(t.type==='transfer')return`${acctMap[t.acctId]||'?'} → ${acctMap[t.toAcctId]||'?'}`;
+  return '';
+}
+
+function renderList(){
+  const acctF=document.getElementById('f-acctF').value;
+  let list=transactions.filter(t=>{
+    if(currentFilter!=='all'&&t.type!==currentFilter)return false;
+    if(acctF){const id=parseInt(acctF);if(t.acctId!==id&&t.toAcctId!==id)return false}
+    return true;
+  });
+  const el=document.getElementById('tx-list');
+  if(!list.length){el.innerHTML='<div class="empty"><i class="ti ti-inbox" style="font-size:28px;display:block;margin-bottom:6px;opacity:.4"></i>Sin registros.</div>';return}
+  el.innerHTML=list.map(t=>{
+    const isIn=t.type==='income',isOut=t.type==='expense',isTr=t.type==='transfer';
+    const ico=isIn?'ico-in':isOut?'ico-out':'ico-mov';
+    const tiIcon=isIn?'ti-arrow-up':isOut?'ti-arrow-down':'ti-arrows-exchange';
+    const badge=isIn?'badge-in':isOut?'badge-out':'badge-mov';
+    const badgeTxt=isIn?'Ingreso':isOut?'Egreso':'Movimiento';
+    const amtClass=isIn?'c-green':isOut?'c-red':'c-blue';
+    const amtPrefix=isIn?'+':isOut?'-':'';
+    return`<div class="tx-row">
+      <div class="tx-ico ${ico}"><i class="ti ${tiIcon}" aria-hidden="true"></i></div>
+      <div class="tx-info">
+        <div class="tx-name">${t.desc}</div>
+        <div class="tx-sub">${txLabel(t)} · ${t.date}</div>
+      </div>
+      <span class="badge ${badge}">${badgeTxt}</span>
+      <div class="tx-amt ${amtClass}">${amtPrefix}${fmt(t.amount)}</div>
+      <button class="tx-del" onclick="deleteTx(${t.id})" aria-label="Eliminar"><i class="ti ti-trash"></i></button>
+    </div>`;
+  }).join('');
+}
+
+function addAcct(){
+  const name=document.getElementById('acct-name').value.trim();
+  const type=document.getElementById('acct-type').value;
+  const initBal=parseFloat(document.getElementById('acct-init').value)||0;
+  if(!name)return;
+  accounts.push({id:nextAcctId++,name,type,initBal});
+  document.getElementById('acct-name').value='';
+  document.getElementById('acct-init').value='';
+  updateSelects();renderAccts();
+}
+
+function deleteAcct(id){
+  const hasTx=transactions.some(t=>t.acctId===id||t.toAcctId===id);
+  if(hasTx){alert('No se puede eliminar una cuenta con movimientos registrados.');return}
+  accounts=accounts.filter(a=>a.id!==id);
+  updateSelects();renderAccts();
+}
+
+function renderAccts(){
+  document.getElementById('accts-grid').innerHTML=accounts.map(a=>{
+    const bal=acctBalance(a.id);
+    const typeLabel={bank:'Banco',cash:'Efectivo',loan:'Préstamo',invest:'Inversión',other:'Otro'}[a.type]||a.type;
+    return`<div class="acct-card">
+      <button class="acct-del" onclick="deleteAcct(${a.id})" aria-label="Eliminar cuenta"><i class="ti ti-x"></i></button>
+      <div class="acct-icon" style="background:${ACCT_COLORS[a.type]};color:${ACCT_TC[a.type]}"><i class="ti ${ACCT_ICONS[a.type]||'ti-wallet'}" style="font-size:16px" aria-hidden="true"></i></div>
+      <div class="acct-name">${a.name}</div>
+      <div class="acct-bal ${bal<0?'c-red':''}">${fmt(bal)}</div>
+      <div class="acct-sub">${typeLabel} · Inicial: ${fmt(a.initBal)}</div>
+    </div>`;
+  }).join('');
+}
+
+function destroyChart(k){if(charts[k]){charts[k].destroy();delete charts[k]}}
+
+function renderDashboard(){
+  const income=transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense=transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const transfers=transactions.filter(t=>t.type==='transfer').length;
+  const bal=totalBalance();
+  document.getElementById('dash-metrics').innerHTML=`
+    <div class="metric"><div class="metric-lbl"><i class="ti ti-trending-up"></i> Total ingresos</div><div class="metric-val c-green">${fmt(income)}</div></div>
+    <div class="metric"><div class="metric-lbl"><i class="ti ti-trending-down"></i> Total egresos</div><div class="metric-val c-red">${fmt(expense)}</div></div>
+    <div class="metric"><div class="metric-lbl"><i class="ti ti-wallet"></i> Balance total</div><div class="metric-val ${bal>=0?'c-green':'c-red'}">${fmt(bal)}</div></div>
+    <div class="metric"><div class="metric-lbl"><i class="ti ti-arrows-exchange"></i> Movimientos internos</div><div class="metric-val c-blue">${transfers}</div></div>`;
+
+  const last6=[];const now=new Date();
+  for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);last6.push({y:d.getFullYear(),m:d.getMonth(),label:MONTHS_ES[d.getMonth()].slice(0,3)})}
+  const incD=last6.map(({y,m})=>transactions.filter(t=>{const d=new Date(t.date);return t.type==='income'&&d.getFullYear()===y&&d.getMonth()===m}).reduce((s,t)=>s+t.amount,0));
+  const expD=last6.map(({y,m})=>transactions.filter(t=>{const d=new Date(t.date);return t.type==='expense'&&d.getFullYear()===y&&d.getMonth()===m}).reduce((s,t)=>s+t.amount,0));
+  destroyChart('bar');
+  charts.bar=new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:last6.map(x=>x.label),datasets:[{label:'Ingresos',data:incD,backgroundColor:'#5DCAA5',borderRadius:3},{label:'Egresos',data:expD,backgroundColor:'#F0997B',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10},callback:v=>'S/'+v}}}}});
+
+  const expByCat={};transactions.filter(t=>t.type==='expense').forEach(t=>{expByCat[t.cat]=(expByCat[t.cat]||0)+t.amount});
+  const pL=Object.keys(expByCat);
+  destroyChart('pie');
+  charts.pie=new Chart(document.getElementById('pieChart'),{type:'doughnut',data:{labels:pL.length?pL:['Sin datos'],datasets:[{data:pL.length?pL.map(c=>expByCat[c]):[1],backgroundColor:pL.length?pL.map(c=>CAT_COLORS[c]||'#888780'):['#D3D1C7'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:9,padding:5}}},cutout:'58%'}});
+
+  destroyChart('acct');
+  charts.acct=new Chart(document.getElementById('acctChart'),{type:'bar',data:{labels:accounts.map(a=>a.name),datasets:[{data:accounts.map(a=>acctBalance(a.id)),backgroundColor:accounts.map(a=>ACCT_COLORS[a.type]||'#F1EFE8'),borderColor:accounts.map(a=>ACCT_TC[a.type]||'#2C2C2A'),borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10},callback:v=>'S/'+v}}}}});
+
+  const acctMap=Object.fromEntries(accounts.map(a=>[a.id,a.name]));
+  const rel=document.getElementById('dash-recent');
+  const recent=transactions.slice(0,6);
+  if(!recent.length){rel.innerHTML='<div class="empty">Sin movimientos aún.</div>';return}
+  rel.innerHTML=recent.map(t=>{
+    const isIn=t.type==='income',isTr=t.type==='transfer';
+    return`<div class="tx-row">
+      <div class="tx-ico ${isIn?'ico-in':isTr?'ico-mov':'ico-out'}"><i class="ti ${isIn?'ti-arrow-up':isTr?'ti-arrows-exchange':'ti-arrow-down'}" aria-hidden="true"></i></div>
+      <div class="tx-info"><div class="tx-name">${t.desc}</div><div class="tx-sub">${txLabel(t)} · ${t.date}</div></div>
+      <div class="tx-amt ${isIn?'c-green':isTr?'c-blue':'c-red'}">${isIn?'+':isTr?'↔':'-'}${fmt(t.amount)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderMensual(){
+  const val=document.getElementById('sel-month').value;if(!val)return;
+  const [y,m]=[parseInt(val.split('-')[0]),parseInt(val.split('-')[1])-1];
+  const txs=transactions.filter(t=>{const d=new Date(t.date);return d.getFullYear()===y&&d.getMonth()===m});
+  const income=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const transfers=txs.filter(t=>t.type==='transfer').length;
+  document.getElementById('mensual-metrics').innerHTML=`
+    <div class="sum-card"><div class="sum-lbl">Ingresos</div><div class="sum-val c-green">${fmt(income)}</div></div>
+    <div class="sum-card"><div class="sum-lbl">Egresos</div><div class="sum-val c-red">${fmt(expense)}</div></div>
+    <div class="sum-card"><div class="sum-lbl">Balance del mes</div><div class="sum-val ${income-expense>=0?'c-green':'c-red'}">${fmt(income-expense)}</div></div>
+    <div class="sum-card"><div class="sum-lbl">Mov. internos</div><div class="sum-val c-blue">${transfers}</div></div>`;
+
+  const incByCat={};CATS_IN.forEach(c=>incByCat[c]=0);txs.filter(t=>t.type==='income').forEach(t=>{incByCat[t.cat]=(incByCat[t.cat]||0)+t.amount});
+  const actIn=Object.entries(incByCat).filter(([,v])=>v>0);
+  destroyChart('mInc');
+  charts.mInc=new Chart(document.getElementById('mIncChart'),{type:'doughnut',data:{labels:actIn.length?actIn.map(([k])=>k):['Sin ingresos'],datasets:[{data:actIn.length?actIn.map(([,v])=>v):[1],backgroundColor:actIn.length?actIn.map(([k])=>CAT_COLORS[k]||'#888780'):['#D3D1C7'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:9,padding:5}}},cutout:'55%'}});
+
+  const expByCat={};CATS_EX.forEach(c=>expByCat[c]=0);txs.filter(t=>t.type==='expense').forEach(t=>{expByCat[t.cat]=(expByCat[t.cat]||0)+t.amount});
+  const actEx=Object.entries(expByCat).filter(([,v])=>v>0);
+  destroyChart('mExp');
+  charts.mExp=new Chart(document.getElementById('mExpChart'),{type:'doughnut',data:{labels:actEx.length?actEx.map(([k])=>k):['Sin egresos'],datasets:[{data:actEx.length?actEx.map(([,v])=>v):[1],backgroundColor:actEx.length?actEx.map(([k])=>CAT_COLORS[k]||'#888780'):['#D3D1C7'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:9,padding:5}}},cutout:'55%'}});
+
+  const ml=document.getElementById('mensual-list');
+  if(!txs.length){ml.innerHTML='<div class="empty">Sin movimientos en este mes.</div>';return}
+  ml.innerHTML=txs.map(t=>{
+    const isIn=t.type==='income',isTr=t.type==='transfer';
+    return`<div class="tx-row">
+      <div class="tx-ico ${isIn?'ico-in':isTr?'ico-mov':'ico-out'}"><i class="ti ${isIn?'ti-arrow-up':isTr?'ti-arrows-exchange':'ti-arrow-down'}" aria-hidden="true"></i></div>
+      <div class="tx-info"><div class="tx-name">${t.desc}</div><div class="tx-sub">${txLabel(t)} · ${t.date}</div></div>
+      <span class="badge ${isIn?'badge-in':isTr?'badge-mov':'badge-out'}">${isIn?'Ingreso':isTr?'Movimiento':'Egreso'}</span>
+      <div class="tx-amt ${isIn?'c-green':isTr?'c-blue':'c-red'}">${isIn?'+':isTr?'↔':'-'}${fmt(t.amount)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAnual(){
+  const year=parseInt(document.getElementById('sel-year').value);
+  const txs=transactions.filter(t=>new Date(t.date).getFullYear()===year);
+  const income=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const transfers=txs.filter(t=>t.type==='transfer').length;
+  document.getElementById('anual-metrics').innerHTML=`
+    <div class="sum-card"><div class="sum-lbl">Ingresos ${year}</div><div class="sum-val c-green">${fmt(income)}</div></div>
+    <div class="sum-card"><div class="sum-lbl">Egresos ${year}</div><div class="sum-val c-red">${fmt(expense)}</div></div>
+    <div class="sum-card"><div class="sum-lbl">Balance anual</div><div class="sum-val ${income-expense>=0?'c-green':'c-red'}">${fmt(income-expense)}</div></div>
+    <div class="sum-card"><div class="sum-lbl">Mov. internos</div><div class="sum-val c-blue">${transfers}</div></div>`;
+
+  const mInc=Array(12).fill(0),mExp=Array(12).fill(0),mTr=Array(12).fill(0);
+  txs.forEach(t=>{const m=new Date(t.date).getMonth();if(t.type==='income')mInc[m]+=t.amount;else if(t.type==='expense')mExp[m]+=t.amount;else mTr[m]++});
+  destroyChart('anual');
+  charts.anual=new Chart(document.getElementById('anualChart'),{type:'bar',data:{labels:MONTHS_ES.map(m=>m.slice(0,3)),datasets:[{label:'Ingresos',data:mInc,backgroundColor:'#5DCAA5',borderRadius:3},{label:'Egresos',data:mExp,backgroundColor:'#F0997B',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},autoSkip:false}},y:{ticks:{font:{size:10},callback:v=>'S/'+v}}}}});
+
+  document.querySelector('#anual-table tbody').innerHTML=MONTHS_ES.map((mn,i)=>{const b=mInc[i]-mExp[i];return`<tr><td>${mn}</td><td class="c-green">${fmt(mInc[i])}</td><td class="c-red">${fmt(mExp[i])}</td><td class="c-blue">${mTr[i]}</td><td class="${b>=0?'c-green':'c-red'}">${fmt(b)}</td></tr>`}).join('');
+}
+
+function initYears(){
+  const yr=document.getElementById('sel-year');const now=new Date().getFullYear();
+  for(let y=now;y>=now-4;y--){const o=document.createElement('option');o.value=y;o.textContent=y;yr.appendChild(o)}
+}
+
+const nowM=new Date();
+document.getElementById('sel-month').value=`${nowM.getFullYear()}-${String(nowM.getMonth()+1).padStart(2,'0')}`;
+['in-date','ex-date','tr-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=today()});
+
+transactions=[
+  {id:1,type:'income',desc:'Sueldo enero',cat:'Salario',acctId:1,amount:3500,date:'2026-01-05'},
+  {id:2,type:'income',desc:'Proyecto freelance',cat:'Freelance',acctId:2,amount:900,date:'2026-01-12'},
+  {id:3,type:'transfer',desc:'Depósito a BCP desde efectivo',acctId:3,toAcctId:1,amount:300,date:'2026-01-14'},
+  {id:4,type:'expense',desc:'Mercado',cat:'Alimentación',acctId:3,amount:280,date:'2026-01-15'},
+  {id:5,type:'expense',desc:'Pasajes',cat:'Transporte',acctId:3,amount:140,date:'2026-01-18'},
+  {id:6,type:'income',desc:'Sueldo febrero',cat:'Salario',acctId:1,amount:3500,date:'2026-02-05'},
+  {id:7,type:'transfer',desc:'Efectivo a Interbank',acctId:3,toAcctId:2,amount:500,date:'2026-02-08'},
+  {id:8,type:'expense',desc:'Farmacia',cat:'Salud',acctId:1,amount:95,date:'2026-02-10'},
+  {id:9,type:'income',desc:'Sueldo marzo',cat:'Salario',acctId:1,amount:3500,date:'2026-03-05'},
+  {id:10,type:'expense',desc:'Recibos servicios',cat:'Servicios',acctId:1,amount:210,date:'2026-03-20'},
+];
+
+initYears();updateSelects();renderDashboard();renderAccts();
+</script>
