@@ -16,7 +16,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -33,7 +33,7 @@
   const db = getFirestore(app);
 
   // Exponemos lo necesario para usarlo fuera del módulo
-  window.__fb = { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, doc, getDoc, setDoc };
+  window.__fb = { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, doc, getDoc, setDoc, sendPasswordResetEmail };
 
   onAuthStateChanged(auth, (user) => {
     window.__currentUser = user;
@@ -199,6 +199,10 @@
   .pass-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text2); cursor: pointer; padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
   .pass-toggle:hover { color: var(--text); background: var(--surface2); }
   .login-err { color: var(--red); font-size: 12.5px; margin-top: 10px; min-height: 16px; text-align: center; }
+  .login-ok { color: var(--green-dk); background: var(--green-bg); font-size: 12.5px; margin-top: 10px; padding: 10px 12px; border-radius: var(--radius); text-align: center; display: none; }
+  .login-ok.show { display: block; }
+  .link-btn { display: block; width: 100%; text-align: center; background: none; border: none; color: var(--text2); font-size: 12.5px; cursor: pointer; margin-top: 14px; padding: 6px; text-decoration: underline; text-underline-offset: 2px; }
+  .link-btn:hover { color: var(--green-dk); }
   .login-loading { text-align: center; color: var(--text2); font-size: 13px; padding: 1rem 0; }
   #app-root { display: none; }
 
@@ -218,7 +222,8 @@
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo"><i class="ti ti-wallet"></i> Mis Finanzas</div>
-    <div class="login-sub">Ingresa para ver tus cuentas y movimientos</div>
+    <div class="login-sub" id="login-sub">Ingresa para ver tus cuentas y movimientos</div>
+
     <div id="login-form">
       <div><div class="flabel">Correo</div><input type="text" id="login-email" placeholder="tu@correo.com" autocomplete="username" /></div>
       <div>
@@ -232,7 +237,19 @@
         <i class="ti ti-login"></i> Ingresar
       </button>
       <div class="login-err" id="login-error"></div>
+      <button type="button" class="link-btn" onclick="showReset()">¿Olvidaste tu contraseña?</button>
     </div>
+
+    <div id="reset-form" style="display:none">
+      <div><div class="flabel">Correo</div><input type="text" id="reset-email" placeholder="tu@correo.com" autocomplete="username" onkeydown="if(event.key==='Enter')doReset()" /></div>
+      <button class="btn btn-blue" onclick="doReset()" style="width:100%;justify-content:center;margin-top:14px">
+        <i class="ti ti-mail"></i> Enviar enlace de recuperación
+      </button>
+      <div class="login-err" id="reset-error"></div>
+      <div class="login-ok" id="reset-ok"></div>
+      <button type="button" class="link-btn" onclick="showLogin()">← Volver a iniciar sesión</button>
+    </div>
+
     <div id="login-loading" class="login-loading" style="display:none">Conectando...</div>
   </div>
 </div>
@@ -470,6 +487,43 @@ function togglePass(){
   btn.setAttribute('aria-label', showing?'Mostrar contraseña':'Ocultar contraseña');
 }
 
+function showReset(){
+  document.getElementById('login-form').style.display='none';
+  document.getElementById('reset-form').style.display='block';
+  document.getElementById('login-sub').textContent='Te enviaremos un enlace para restablecerla';
+  document.getElementById('reset-error').textContent='';
+  document.getElementById('reset-ok').classList.remove('show');
+  const emailVal=document.getElementById('login-email').value.trim();
+  if(emailVal) document.getElementById('reset-email').value=emailVal;
+}
+
+function showLogin(){
+  document.getElementById('reset-form').style.display='none';
+  document.getElementById('login-form').style.display='block';
+  document.getElementById('login-sub').textContent='Ingresa para ver tus cuentas y movimientos';
+  document.getElementById('login-error').textContent='';
+}
+
+function doReset(){
+  const email=document.getElementById('reset-email').value.trim();
+  const errEl=document.getElementById('reset-error');
+  const okEl=document.getElementById('reset-ok');
+  errEl.textContent='';
+  okEl.classList.remove('show');
+  if(!email){ errEl.textContent='Escribe tu correo'; return; }
+  const { auth, sendPasswordResetEmail } = window.__fb;
+  sendPasswordResetEmail(auth, email).then(()=>{
+    okEl.textContent='✓ Enlace enviado. Revisa tu correo (y la carpeta de spam).';
+    okEl.classList.add('show');
+  }).catch(err=>{
+    const map={
+      'auth/invalid-email':'Correo inválido',
+      'auth/too-many-requests':'Demasiados intentos, espera un momento'
+    };
+    errEl.textContent = map[err.code] || 'No se pudo enviar el correo. Verifica que esté registrado.';
+  });
+}
+
 function doLogin(){
   const email=document.getElementById('login-email').value.trim();
   const pass=document.getElementById('login-pass').value;
@@ -508,6 +562,8 @@ document.addEventListener('fb-auth-ready', async (e) => {
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('app-root').style.display='none';
     document.getElementById('login-form').style.display='block';
+    document.getElementById('reset-form').style.display='none';
+    document.getElementById('login-sub').textContent='Ingresa para ver tus cuentas y movimientos';
     document.getElementById('login-loading').style.display='none';
   }
 });
