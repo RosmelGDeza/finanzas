@@ -194,6 +194,10 @@
   .login-logo i { color: var(--green); font-size: 26px; }
   .login-sub { text-align: center; color: var(--text2); font-size: 13px; margin-bottom: 1.6rem; }
   .login-box .flabel { margin-top: 12px; }
+  .pass-wrap { position: relative; }
+  .pass-wrap input { padding-right: 42px; }
+  .pass-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text2); cursor: pointer; padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .pass-toggle:hover { color: var(--text); background: var(--surface2); }
   .login-err { color: var(--red); font-size: 12.5px; margin-top: 10px; min-height: 16px; text-align: center; }
   .login-loading { text-align: center; color: var(--text2); font-size: 13px; padding: 1rem 0; }
   #app-root { display: none; }
@@ -217,7 +221,13 @@
     <div class="login-sub">Ingresa para ver tus cuentas y movimientos</div>
     <div id="login-form">
       <div><div class="flabel">Correo</div><input type="text" id="login-email" placeholder="tu@correo.com" autocomplete="username" /></div>
-      <div><div class="flabel">Contraseña</div><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" /></div>
+      <div>
+        <div class="flabel">Contraseña</div>
+        <div class="pass-wrap">
+          <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" />
+          <button type="button" class="pass-toggle" onclick="togglePass()" id="pass-toggle-btn" aria-label="Mostrar contraseña"><i class="ti ti-eye"></i></button>
+        </div>
+      </div>
       <button class="btn btn-green" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:14px">
         <i class="ti ti-login"></i> Ingresar
       </button>
@@ -451,6 +461,15 @@ function setSyncBadge(state){
 }
 
 // ── Login / Logout ──────────────────────────────────────────
+function togglePass(){
+  const input=document.getElementById('login-pass');
+  const btn=document.getElementById('pass-toggle-btn');
+  const showing=input.type==='text';
+  input.type=showing?'password':'text';
+  btn.innerHTML=showing?'<i class="ti ti-eye"></i>':'<i class="ti ti-eye-off"></i>';
+  btn.setAttribute('aria-label', showing?'Mostrar contraseña':'Ocultar contraseña');
+}
+
 function doLogin(){
   const email=document.getElementById('login-email').value.trim();
   const pass=document.getElementById('login-pass').value;
