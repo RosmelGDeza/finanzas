@@ -16,7 +16,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -33,7 +33,7 @@
   const db = getFirestore(app);
 
   // Exponemos lo necesario para usarlo fuera del módulo
-  window.__fb = { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, doc, getDoc, setDoc, sendPasswordResetEmail };
+  window.__fb = { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, doc, getDoc, setDoc, sendPasswordResetEmail, updateProfile };
 
   onAuthStateChanged(auth, (user) => {
     window.__currentUser = user;
@@ -202,6 +202,8 @@
   .login-ok { color: var(--green-dk); background: var(--green-bg); font-size: 12.5px; margin-top: 10px; padding: 10px 12px; border-radius: var(--radius); text-align: center; display: none; }
   .login-ok.show { display: block; }
   .link-btn { display: block; width: 100%; text-align: center; background: none; border: none; color: var(--text2); font-size: 12.5px; cursor: pointer; margin-top: 14px; padding: 6px; text-decoration: underline; text-underline-offset: 2px; }
+  .login-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 14px; color: var(--text3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .link-btn:hover { color: var(--green-dk); }
   .login-loading { text-align: center; color: var(--text2); font-size: 13px; padding: 1rem 0; }
   #app-root { display: none; }
@@ -238,6 +240,31 @@
       </button>
       <div class="login-err" id="login-error"></div>
       <button type="button" class="link-btn" onclick="showReset()">¿Olvidaste tu contraseña?</button>
+      <div class="login-divider"><span>o</span></div>
+      <button type="button" class="btn" onclick="showSignup()" style="width:100%;justify-content:center">
+        <i class="ti ti-user-plus"></i> Crear una cuenta nueva
+      </button>
+    </div>
+
+    <div id="signup-form" style="display:none">
+      <div><div class="flabel">Nombre</div><input type="text" id="signup-name" placeholder="Tu nombre" autocomplete="name" /></div>
+      <div><div class="flabel">Correo</div><input type="text" id="signup-email" placeholder="tu@correo.com" autocomplete="username" /></div>
+      <div>
+        <div class="flabel">Contraseña</div>
+        <div class="pass-wrap">
+          <input type="password" id="signup-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+          <button type="button" class="pass-toggle" onclick="toggleSignupPass()" id="signup-pass-toggle-btn" aria-label="Mostrar contraseña"><i class="ti ti-eye"></i></button>
+        </div>
+      </div>
+      <div>
+        <div class="flabel">Confirmar contraseña</div>
+        <input type="password" id="signup-pass2" placeholder="Repite tu contraseña" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSignup()" />
+      </div>
+      <button class="btn btn-green" onclick="doSignup()" style="width:100%;justify-content:center;margin-top:14px">
+        <i class="ti ti-user-plus"></i> Crear cuenta
+      </button>
+      <div class="login-err" id="signup-error"></div>
+      <button type="button" class="link-btn" onclick="showLogin()">← Ya tengo una cuenta</button>
     </div>
 
     <div id="reset-form" style="display:none">
@@ -499,9 +526,62 @@ function showReset(){
 
 function showLogin(){
   document.getElementById('reset-form').style.display='none';
+  document.getElementById('signup-form').style.display='none';
   document.getElementById('login-form').style.display='block';
   document.getElementById('login-sub').textContent='Ingresa para ver tus cuentas y movimientos';
   document.getElementById('login-error').textContent='';
+}
+
+function showSignup(){
+  document.getElementById('login-form').style.display='none';
+  document.getElementById('signup-form').style.display='block';
+  document.getElementById('login-sub').textContent='Crea tu cuenta para empezar a registrar tus finanzas';
+  document.getElementById('signup-error').textContent='';
+  const emailVal=document.getElementById('login-email').value.trim();
+  if(emailVal) document.getElementById('signup-email').value=emailVal;
+}
+
+function toggleSignupPass(){
+  const input=document.getElementById('signup-pass');
+  const btn=document.getElementById('signup-pass-toggle-btn');
+  const showing=input.type==='text';
+  input.type=showing?'password':'text';
+  btn.innerHTML=showing?'<i class="ti ti-eye"></i>':'<i class="ti ti-eye-off"></i>';
+  btn.setAttribute('aria-label', showing?'Mostrar contraseña':'Ocultar contraseña');
+}
+
+function doSignup(){
+  const name=document.getElementById('signup-name').value.trim();
+  const email=document.getElementById('signup-email').value.trim();
+  const pass=document.getElementById('signup-pass').value;
+  const pass2=document.getElementById('signup-pass2').value;
+  const errEl=document.getElementById('signup-error');
+  errEl.textContent='';
+
+  if(!name){ errEl.textContent='Escribe tu nombre'; return; }
+  if(!email){ errEl.textContent='Escribe tu correo'; return; }
+  if(pass.length<6){ errEl.textContent='La contraseña debe tener al menos 6 caracteres'; return; }
+  if(pass!==pass2){ errEl.textContent='Las contraseñas no coinciden'; return; }
+
+  document.getElementById('signup-form').style.display='none';
+  document.getElementById('login-loading').style.display='block';
+  document.getElementById('login-loading').textContent='Creando tu cuenta...';
+
+  const { auth, createUserWithEmailAndPassword, updateProfile } = window.__fb;
+  createUserWithEmailAndPassword(auth, email, pass).then((cred)=>{
+    return updateProfile(cred.user, { displayName: name });
+  }).catch(err=>{
+    document.getElementById('signup-form').style.display='block';
+    document.getElementById('login-loading').style.display='none';
+    document.getElementById('login-loading').textContent='Conectando...';
+    const map={
+      'auth/email-already-in-use':'Ese correo ya tiene una cuenta. Intenta iniciar sesión.',
+      'auth/invalid-email':'Correo inválido',
+      'auth/weak-password':'La contraseña es muy débil, usa al menos 6 caracteres'
+    };
+    errEl.textContent = map[err.code] || 'No se pudo crear la cuenta. Intenta de nuevo.';
+  });
+  // Si la creación tiene éxito, onAuthStateChanged se dispara solo y entra a la app.
 }
 
 function doReset(){
@@ -555,7 +635,7 @@ document.addEventListener('fb-auth-ready', async (e) => {
   if(user){
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app-root').style.display='block';
-    document.getElementById('user-email').textContent=user.email;
+    document.getElementById('user-email').textContent=user.displayName ? `${user.displayName} · ${user.email}` : user.email;
     await loadData();
     initApp();
   } else {
@@ -563,8 +643,10 @@ document.addEventListener('fb-auth-ready', async (e) => {
     document.getElementById('app-root').style.display='none';
     document.getElementById('login-form').style.display='block';
     document.getElementById('reset-form').style.display='none';
+    document.getElementById('signup-form').style.display='none';
     document.getElementById('login-sub').textContent='Ingresa para ver tus cuentas y movimientos';
     document.getElementById('login-loading').style.display='none';
+    document.getElementById('login-loading').textContent='Conectando...';
   }
 });
 
